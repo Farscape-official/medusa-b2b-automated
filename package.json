@@ -1,0 +1,19 @@
+{
+  "name": "farscape",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Farscape B2B Ecommerce Platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:storefront": "npm run dev --workspace=apps/storefront",
+    "dev:backend": "npm run dev --workspace=apps/medusa-backend",
+    "build:all": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "keywords": ["b2b", "ecommerce", "medusa", "nextjs"],
+  "author": "Gaurav <gaurav@farscape.io>",
+  "license": "UNLICENSED"
+}

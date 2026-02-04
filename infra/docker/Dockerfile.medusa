@@ -1,0 +1,22 @@
+# Medusa Backend Dockerfile
+# To be updated after Medusa backend is scaffolded
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY apps/medusa-backend/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY apps/medusa-backend .
+
+# Build (if needed)
+# RUN npm run build
+
+EXPOSE 9000
+
+CMD ["npm", "start"]

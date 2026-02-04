@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres-prod:
+    image: postgres:15-alpine
+    container_name: farscape-postgres-prod
+    environment:
+      POSTGRES_USER: medusa_prod
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: medusa_prod
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - farscape-prod
+
+  redis-prod:
+    image: redis:7-alpine
+    container_name: farscape-redis-prod
+    restart: unless-stopped
+    networks:
+      - farscape-prod
+
+  minio-prod:
+    image: minio/minio:latest
+    container_name: farscape-minio-prod
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio-prod-data:/data
+    restart: unless-stopped
+    networks:
+      - farscape-prod
+
+networks:
+  farscape-prod:
+    driver: bridge
+
+volumes:
+  postgres-prod-data:
+  minio-prod-data:

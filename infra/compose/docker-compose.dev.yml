@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: farscape-postgres-dev
+    environment:
+      POSTGRES_USER: medusa_dev
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: medusa_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - farscape-dev
+
+  redis-dev:
+    image: redis:7-alpine
+    container_name: farscape-redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - farscape-dev
+
+  minio-dev:
+    image: minio/minio:latest
+    container_name: farscape-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: dev_access_key_12345
+      MINIO_ROOT_PASSWORD: dev_secret_key_67890
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-dev-data:/data
+    networks:
+      - farscape-dev
+
+networks:
+  farscape-dev:
+    driver: bridge
+
+volumes:
+  postgres-dev-data:
+  minio-dev-data:

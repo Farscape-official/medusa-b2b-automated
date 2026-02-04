@@ -1,0 +1,22 @@
+# Next.js Storefront Dockerfile
+# To be updated after Next.js storefront is scaffolded
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY apps/storefront/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY apps/storefront .
+
+# Build
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
