@@ -29,6 +29,11 @@
 # Usage:
 #   sudo bash 01-system-setup.sh
 #
+# Environment Variables (for non-interactive execution):
+#   ALLOW_UNSUPPORTED_OS=true    - Continue on non-24.04 Ubuntu versions
+#   FORCE_NODE_REINSTALL=true    - Reinstall Node.js if wrong version detected
+#   PACKAGE_MANAGER=npm|pnpm     - Choose package manager (default: npm)
+#
 # Exit codes:
 #   0 = Success
 #   1 = General error
@@ -60,6 +65,10 @@ SWAP_SIZE="2G"  # 2GB swap file
 
 # Package manager choice (npm or pnpm)
 PACKAGE_MANAGER="${PACKAGE_MANAGER:-npm}"  # Default to npm if not set
+
+# Non-interactive execution flags
+ALLOW_UNSUPPORTED_OS="${ALLOW_UNSUPPORTED_OS:-false}"    # Continue on non-24.04 versions
+FORCE_NODE_REINSTALL="${FORCE_NODE_REINSTALL:-false}"    # Reinstall Node.js if wrong version
 
 # Node.js version
 NODE_MAJOR_VERSION=20
@@ -137,9 +146,10 @@ check_os() {
     if [[ "$VERSION_ID" != "24.04" ]]; then
         warn "This script is tested on Ubuntu 24.04"
         warn "Detected version: $VERSION_ID"
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        if [[ "$ALLOW_UNSUPPORTED_OS" == "true" ]]; then
+            warn "ALLOW_UNSUPPORTED_OS=true, continuing anyway..."
+        else
+            error "Set ALLOW_UNSUPPORTED_OS=true to continue on unsupported versions"
             exit 3
         fi
     fi
@@ -254,9 +264,10 @@ install_nodejs() {
             return 0
         else
             warn "Installed version is v${major_version}, expected v${NODE_MAJOR_VERSION}"
-            read -p "Reinstall correct version? (y/N): " -n 1 -r
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            if [[ "$FORCE_NODE_REINSTALL" == "true" ]]; then
+                warn "FORCE_NODE_REINSTALL=true, reinstalling correct version..."
+            else
+                warn "Set FORCE_NODE_REINSTALL=true to reinstall correct version"
                 return 0
             fi
         fi

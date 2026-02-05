@@ -13,7 +13,12 @@
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces"
   },
-  "keywords": ["b2b", "ecommerce", "medusa", "nextjs"],
+  "keywords": [
+    "b2b",
+    "ecommerce",
+    "medusa",
+    "nextjs"
+  ],
   "author": "Gaurav <gaurav@farscape.io>",
   "license": "UNLICENSED"
 }
