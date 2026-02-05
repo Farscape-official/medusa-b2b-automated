@@ -1,78 +1,113 @@
 #!/bin/bash
 
 # ==============================================================================
-# Farscape Advanced Dynamic Sync Script
-# Function: Secure, Branch-Aware, and Idempotent Code Synchronization
+# Farscape Enterprise Sync Script (Non-Interactive / CI-Ready)
+# Function: Automated, Secure, Token-Based Git Sync
 # ==============================================================================
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# 1. Pre-flight Git & Auth Checks
-[[ $(git rev-parse --is-inside-work-tree) == "true" ]] || { echo "❌ Not a git repo"; exit 1; } [cite: 574]
+# ------------------------------------------------------------------------------
+# 1. Load Environment Variables
+# ------------------------------------------------------------------------------
 
-REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "none")
-[[ "$REMOTE_URL" == "none" ]] && { echo "❌ No origin remote"; exit 1; }
+ENV_FILE=".env.dev"
 
-# 2. Dynamic Logging Setup
+if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+fi
+
+# ------------------------------------------------------------------------------
+# 2. Input Handling (Args > Env > Defaults)
+# ------------------------------------------------------------------------------
+
+TARGET_BRANCH="${1:-${TARGET_BRANCH:-main}}"
+COMMIT_MSG="${2:-${COMMIT_MSG:-"auto: sync $(date +'%Y-%m-%d %H:%M')"}}"
+
 LOG_FILE="/var/log/farscape/sync_$(date +'%Y%m').log"
-sudo mkdir -p "$(dirname "$LOG_FILE")"
-sudo chmod 777 "$(dirname "$LOG_FILE")"
 
-# 3. Interactive Branch & Remote Validation
-echo "🔍 Fetching latest remote state..."
+# ------------------------------------------------------------------------------
+# 3. Pre-flight Checks
+# ------------------------------------------------------------------------------
+
+# Git repo check
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo "❌ Not inside a Git repository"
+    exit 1
+}
+
+# Token check (for HTTPS)
+if ! git remote get-url origin | grep -q "^git@"; then
+    [[ -z "${GITHUB_TOKEN:-}" ]] && {
+        echo "❌ GITHUB_TOKEN not found (required for HTTPS)"
+        exit 1
+    }
+fi
+
+# Logging setup
+sudo mkdir -p "$(dirname "$LOG_FILE")"
+sudo chmod 750 "$(dirname "$LOG_FILE")"
+
+# ------------------------------------------------------------------------------
+# 4. Remote & Branch Setup
+# ------------------------------------------------------------------------------
+
+REMOTE_URL=$(git remote get-url origin)
+
+# Configure token auth if HTTPS
+if [[ "$REMOTE_URL" =~ ^https://github.com/ ]]; then
+    AUTH_URL=$(echo "$REMOTE_URL" | sed "s#https://#https://${GITHUB_TOKEN}@#")
+
+    git remote set-url origin "$AUTH_URL"
+fi
+
+# Fetch latest state
 git fetch origin --quiet
 
-# List local and remote branches for user context
-echo "--- Existing Branches ---"
-git branch -a | grep -v "remotes/origin/HEAD"
-echo "-------------------------"
-
-# Get Target Branch from User
-read -p "Enter target branch name: " TARGET_BRANCH
-[[ -z "$TARGET_BRANCH" ]] && { echo "❌ Branch name cannot be empty"; exit 1; }
-
-# Check if branch exists on remote to prevent orphan pushes
-if ! git ls-remote --heads origin "$TARGET_BRANCH" | grep -q "$TARGET_BRANCH"; then
-    read -p "⚠️ Branch '$TARGET_BRANCH' does not exist on remote. Create it? (y/n): " CREATE_CONFIRM
-    [[ "$CREATE_CONFIRM" != "y" ]] && { echo "🛑 Aborted"; exit 1; }
-fi
-
-# Switch branch if necessary
+# Prevent detached HEAD
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached")
-if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
-    echo "🔄 Switching from $CURRENT_BRANCH to $TARGET_BRANCH..."
-    git checkout -b "$TARGET_BRANCH" 2>/dev/null || git checkout "$TARGET_BRANCH"
+
+if [[ "$CURRENT_BRANCH" == "detached" ]]; then
+    echo "❌ Detached HEAD detected. Aborting."
+    exit 1
 fi
 
-# 4. Commit Logic
-read -p "Enter commit message: " COMMIT_MSG
-[[ -z "$COMMIT_MSG" ]] && COMMIT_MSG="auto: sync $(date +'%Y-%m-%d %H:%M')"
+# Checkout / Create branch
+if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
+    git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH" 2>/dev/null \
+        || git checkout -B "$TARGET_BRANCH"
+fi
 
-# 5. Execution with Pipefail Protection
+# ------------------------------------------------------------------------------
+# 5. Main Sync Execution
+# ------------------------------------------------------------------------------
+
 {
-    echo "--- Sync Operation Started: $(date) ---"
-    
-    # Auth Check (SSH vs HTTPS)
-    if [[ "$REMOTE_URL" == git@* ]]; then
-        ssh -T git@github.com 2>&1 | grep -q "successfully authenticated" || true
-    fi
+    echo "================================================"
+    echo "Sync Started: $(date)"
+    echo "Branch      : $TARGET_BRANCH"
+    echo "Repository  : $REMOTE_URL"
+    echo "================================================"
 
-    echo "📦 Staging tracked changes (git add -u)..."
-    git add -u 
+    echo "📦 Staging files (tracked + untracked)..."
+    git add -A
 
-    echo "💾 Committing changes..."
-    # Only commit if there are changes to avoid exit 1
-    if ! git diff-index --quiet HEAD --; then
-        git commit -m "$COMMIT_MSG"
-    else
+    echo "🔍 Checking for changes..."
+
+    if git diff-index --quiet HEAD --; then
         echo "ℹ️ No changes to commit."
+    else
+        echo "💾 Committing..."
+        git commit -m "$COMMIT_MSG"
     fi
 
     echo "🚀 Pushing to origin/$TARGET_BRANCH..."
-    # Ensure upstream is set to prevent orphan push mistakes
+
     git push -u origin "$TARGET_BRANCH"
 
-    echo "✅ Successfully synced to: $(git remote get-url origin)"
-    echo "--- Sync Operation Completed: $(date) ---"
+    echo "✅ Sync completed successfully."
+    echo "Finished: $(date)"
+    echo "================================================"
+
 } 2>&1 | tee -a "$LOG_FILE"
