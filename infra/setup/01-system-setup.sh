@@ -11,10 +11,11 @@
 # 1. Updates Ubuntu packages and installs essential tools
 # 2. Installs Docker + Docker Compose
 # 3. Installs Node.js 20 LTS + npm (or pnpm if specified)
-# 4. Configures UFW firewall (SSH, HTTP, HTTPS only)
-# 5. Configures timezone and system hardening
-# 6. Creates centralized logging directory
-# 7. Sets up backup user and directories
+# 4. Installs GitHub CLI (gh)
+# 5. Configures UFW firewall (SSH, HTTP, HTTPS only)
+# 6. Configures timezone and system hardening
+# 7. Creates centralized logging directory
+# 8. Sets up backup user and directories
 #
 # Note: fail2ban is NOT installed by this script. For SSH protection,
 #       consider implementing rate limiting at the network level or
@@ -285,22 +286,53 @@ install_pnpm() {
         info "Skipping pnpm installation (using npm)"
         return 0
     fi
-    
+
     if command_exists pnpm; then
         warn "pnpm already installed: $(pnpm --version)"
         return 0
     fi
-    
+
     info "Installing pnpm..."
-    
+
     # Install pnpm globally via npm
     npm install -g pnpm
-    
+
     # Verify installation
     if pnpm --version >/dev/null 2>&1; then
         success "pnpm installed: $(pnpm --version)"
     else
         error "pnpm installation failed"
+        exit 1
+    fi
+}
+
+# Install GitHub CLI
+install_github_cli() {
+    if command_exists gh; then
+        local gh_version=$(gh --version | head -n1 | awk '{print $3}')
+        warn "GitHub CLI already installed: ${gh_version}"
+        return 0
+    fi
+
+    info "Installing GitHub CLI..."
+
+    # Add GitHub CLI GPG key
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+
+    # Add GitHub CLI repository
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+        tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+    # Update and install
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gh
+
+    # Verify installation
+    if gh --version >/dev/null 2>&1; then
+        success "GitHub CLI installed: $(gh --version | head -n1 | awk '{print $3}')"
+    else
+        error "GitHub CLI installation failed"
         exit 1
     fi
 }
@@ -439,7 +471,11 @@ print_summary() {
     if command_exists pnpm; then
         echo "✅ pnpm installed: v$(pnpm --version)"
     fi
-    
+
+    if command_exists gh; then
+        echo "✅ GitHub CLI installed: v$(gh --version | head -n1 | awk '{print $3}')"
+    fi
+
     echo "✅ UFW firewall configured (ports: ${SSH_PORT}, ${HTTP_PORT}, ${HTTPS_PORT})"
     echo "✅ Timezone: $(timedatectl | grep 'Time zone' | awk '{print $3}')"
     echo "✅ Swap: ${SWAP_SIZE}"
@@ -472,8 +508,8 @@ print_summary() {
 ################################################################################
 
 main() {
-    clear
-    
+    clear 2>/dev/null || true
+
     echo "════════════════════════════════════════════════════════════════"
     echo "  Farscape B2B Platform - System Setup"
     echo "════════════════════════════════════════════════════════════════"
@@ -481,6 +517,7 @@ main() {
     echo "This script will install and configure:"
     echo "  • Docker + Docker Compose"
     echo "  • Node.js ${NODE_MAJOR_VERSION} LTS + ${PACKAGE_MANAGER}"
+    echo "  • GitHub CLI (gh)"
     echo "  • UFW Firewall (SSH, HTTP, HTTPS)"
     echo "  • System hardening"
     echo "  • Backup infrastructure"
@@ -502,6 +539,7 @@ main() {
     install_docker
     install_nodejs
     install_pnpm
+    install_github_cli
     configure_firewall
     configure_timezone
     create_swap

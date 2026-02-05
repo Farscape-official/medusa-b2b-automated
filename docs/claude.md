@@ -39,6 +39,11 @@
 3. Are all errors logged and rethrown?
 4. Minimum tokens used?
 
+## 🤖 Execution Policy
+- **All commands are executed programmatically via automation scripts, with no requirement for manual execution.**
+- **Human intervention is permitted for decisions, but not for command execution.**
+- **No Co-Authored-By lines in commits.** Do not add `Co-Authored-By: Claude` or similar attribution lines.
+
 ## 📋 Response Format
 1. **Summary:** 1-sentence technical gist.
 2. **Code:** The solution.
