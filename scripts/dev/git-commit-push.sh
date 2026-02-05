@@ -12,7 +12,7 @@ IFS=$'\n\t'
 # 1. Load Environment Variables
 # ------------------------------------------------------------------------------
 
-ENV_FILE=".env.dev"
+ENV_FILE="env/.env.dev"
 
 if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"

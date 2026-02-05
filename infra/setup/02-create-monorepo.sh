@@ -263,8 +263,8 @@ create_infra_structure() {
     
     step "Creating infrastructure directory structure..."
     
-    # Infra subdirectories
-    execute "mkdir -p $PROJECT_ROOT/infra/{setup,docker,compose,nginx,scripts}"
+    # Infra subdirectories (compose files go to root, not infra/compose)
+    execute "mkdir -p $PROJECT_ROOT/infra/{setup,docker,nginx,scripts}"
     execute "mkdir -p $PROJECT_ROOT/infra/nginx/{sites,ssl,conf.d}"
     
     mark_step_complete "create_infra_structure"
@@ -610,8 +610,8 @@ EXPOSE 3000
 CMD ["npm", "start"]
 EOF
     
-    # docker-compose.dev.yml
-    cat > "$PROJECT_ROOT/infra/compose/docker-compose.dev.yml" <<'EOF'
+    # docker-compose.dev.yml (at root for easy access)
+    cat > "$PROJECT_ROOT/docker-compose.dev.yml" <<'EOF'
 version: '3.8'
 
 services:
@@ -661,8 +661,8 @@ volumes:
   minio-dev-data:
 EOF
     
-    # docker-compose.prod.yml
-    cat > "$PROJECT_ROOT/infra/compose/docker-compose.prod.yml" <<'EOF'
+    # docker-compose.prod.yml (at root for easy access)
+    cat > "$PROJECT_ROOT/docker-compose.prod.yml" <<'EOF'
 version: '3.8'
 
 services:
@@ -979,9 +979,10 @@ farscape/
 │   └── medusa-worker/      # Background jobs (⏳ pending)
 ├── infra/                   # Infrastructure configs
 │   ├── docker/             # Dockerfiles
-│   ├── compose/            # Docker Compose files
 │   ├── nginx/              # Nginx configs
 │   └── setup/              # Setup scripts
+├── docker-compose.dev.yml   # Dev environment
+├── docker-compose.prod.yml  # Prod environment
 ├── scripts/                 # Automation scripts
 │   ├── dev/                # Development
 │   ├── prod/               # Production
