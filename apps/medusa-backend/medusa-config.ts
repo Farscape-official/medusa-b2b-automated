@@ -17,6 +17,10 @@ module.exports = defineConfig({
     },
   },
   modules: {
+    farscape: {
+      resolve: "./src/modules/farscape",
+      options: {}
+    },
     [COMPANY_MODULE]: {
       resolve: "./modules/company",
     },

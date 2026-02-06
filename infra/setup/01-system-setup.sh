@@ -196,7 +196,8 @@ update_system() {
         ufw \
         unzip \
         tar \
-        gzip
+        gzip \
+        jq
     
     success "System packages updated"
 }
