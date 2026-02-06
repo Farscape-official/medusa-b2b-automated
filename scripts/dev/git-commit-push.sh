@@ -9,13 +9,22 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ------------------------------------------------------------------------------
+# 0. Resolve Project Root
+# ------------------------------------------------------------------------------
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# ------------------------------------------------------------------------------
 # 1. Load Environment Variables
 # ------------------------------------------------------------------------------
 
 ENV_FILE="env/.env.dev"
 
 if [[ -f "$ENV_FILE" ]]; then
+    set -a
     source "$ENV_FILE"
+    set +a
 fi
 
 # ------------------------------------------------------------------------------
@@ -25,7 +34,8 @@ fi
 TARGET_BRANCH="${1:-${TARGET_BRANCH:-main}}"
 COMMIT_MSG="${2:-${COMMIT_MSG:-"auto: sync $(date +'%Y-%m-%d %H:%M')"}}"
 
-LOG_FILE="/var/log/farscape/sync_$(date +'%Y%m').log"
+LOG_DIR="/var/log/farscape"
+LOG_FILE="$LOG_DIR/sync_$(date +'%Y%m').log"
 
 # ------------------------------------------------------------------------------
 # 3. Pre-flight Checks
@@ -37,17 +47,20 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
     exit 1
 }
 
-# Token check (for HTTPS)
-if ! git remote get-url origin | grep -q "^git@"; then
-    [[ -z "${GITHUB_TOKEN:-}" ]] && {
-        echo "❌ GITHUB_TOKEN not found (required for HTTPS)"
-        exit 1
-    }
+# Token check (for HTTPS) — skip if token already embedded in remote URL
+REMOTE_CHECK=$(git remote get-url origin)
+if ! echo "$REMOTE_CHECK" | grep -q "^git@"; then
+    if ! echo "$REMOTE_CHECK" | grep -qE "https://[^@]+@"; then
+        [[ -z "${GITHUB_TOKEN:-}" ]] && {
+            echo "❌ GITHUB_TOKEN not found and no token in remote URL (required for HTTPS)"
+            exit 1
+        }
+    fi
 fi
 
 # Logging setup
-sudo mkdir -p "$(dirname "$LOG_FILE")"
-sudo chmod 750 "$(dirname "$LOG_FILE")"
+mkdir -p "$LOG_DIR"
+chmod 750 "$LOG_DIR"
 
 # ------------------------------------------------------------------------------
 # 4. Remote & Branch Setup
@@ -55,10 +68,9 @@ sudo chmod 750 "$(dirname "$LOG_FILE")"
 
 REMOTE_URL=$(git remote get-url origin)
 
-# Configure token auth if HTTPS
-if [[ "$REMOTE_URL" =~ ^https://github.com/ ]]; then
+# Configure token auth if HTTPS and not already embedded
+if [[ "$REMOTE_URL" =~ ^https://github.com/ ]] && [[ -n "${GITHUB_TOKEN:-}" ]]; then
     AUTH_URL=$(echo "$REMOTE_URL" | sed "s#https://#https://${GITHUB_TOKEN}@#")
-
     git remote set-url origin "$AUTH_URL"
 fi
 

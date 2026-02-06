@@ -155,32 +155,8 @@ if [[ -f "$MEDUSA_CONFIG" ]] && ! grep -qF "farscape:" "$MEDUSA_CONFIG"; then
   rm "$MEDUSA_CONFIG.bak"
 fi
 
-# ---------------- DEPENDENCY SAFETY ----------------
-
-ensure_node_modules() {
-  local path="$1"
-  if [[ -d "$path" && ! -d "$path/node_modules" ]]; then
-    log "Installing dependencies in $(basename "$path")"
-    (cd "$path" && npm install --no-audit --no-fund --legacy-peer-deps)
-  fi
-}
-
-ensure_node_modules "$BACKEND_PATH"
-ensure_node_modules "$WORKER_PATH"
-
-# ---------------- SMOKE TEST ----------------
-
-TS_PATH="$BACKEND_PATH/node_modules/typescript"
-
-if [[ -d "$TS_PATH" ]]; then
-  node -e "require('$TS_PATH');require('fs').readFileSync('$MEDUSA_CONFIG')" \
-    || { log "Smoke test failed"; exit 1; }
-else
-  log "TypeScript not installed, skipping TS smoke test"
-fi
-
 # ---------------- FINAL ----------------
 
-log "06-configure-apps.sh completed successfully"
+log "06-configure-apps.sh completed successfully. Run 07-install-dependencies.sh next."
 exit 0
 

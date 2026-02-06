@@ -23,32 +23,24 @@
 ```
 1 01-system-setup.sh System dependencies, Docker, Node.js n DONE
 2 02-create-monorepo.sh Complete folder structure n DONE
-3 03-init-git-repo.sh Git initialization n NEXT
-4 04-create-github-repo.sh Push to GitHub n Pending
+3 03-init-git-repo.sh Git initialization n DONE
+4 04-create-github-repo.sh Push to GitHub n DONE
 ```
 ## B. App Scaffolding (3 scripts)
 
 ##### # Script Purpose Status
 
 ```
-Script #5: 05-integrate-b2b-starter.sh
-
-Purpose: Clones the official Medusa B2B starter repository, extracts the backend and storefront components, and maps them into our apps/medusa-backend and apps/storefront directories.
-
-Script #6: 06-configure-apps.sh
-
-Purpose: Customizes both applications for the Farscape project. This includes updating package.json names, setting up the initial .env.dev and .env.production templates, and configuring the Medusa backend to recognize our custom module paths.
-
-Script #7: 07-install-dependencies.sh
-
-Purpose: Performs a clean npm install across the entire monorepo to link all workspaces and ensure all dependencies are locked in.
+5 05-integrate-b2b-starter.sh B2B starter clone & mapping n DONE
+6 06-configure-apps.sh App config, envs, module paths n DONE
+7 07-install-dependencies.sh Monorepo workspace npm install n DONE
 ```
 ## C. Development Environment (3 scripts)
 
 ##### # Script Purpose Status
 
 ```
-8 scripts/dev/setup-dev.sh One-time dev environment setup n Pending
+8 scripts/dev/setup-dev.sh One-time dev environment setup n NEXT
 9 scripts/dev/start-dev.sh Start dev services n Pending
 10 scripts/dev/stop-dev.sh Stop dev services n Pending
 ```
@@ -149,10 +141,10 @@ Script 18 Health checks for all services
 
 #### Priority Scripts Timeline Status
 
-##### n Critical 18 Build now (1-2 weeks) 2 of 18 done
+##### n Critical 18 Build now (1-2 weeks) 7 of 18 done
 
 ##### n High 8 After launch (2-4 weeks) Not started
 
-##### Total Active 26 Focus on these only 2 of 26 done
+##### Total Active 26 Focus on these only 7 of 26 done
 
 
